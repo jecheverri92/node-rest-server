@@ -46,3 +46,10 @@ process.env.URLDB = urlDB
 // =============================================================================
 
 process.env.CLIENT_ID = process.env.CLIENT_ID || "536304657858-hmoiv6m1fq67rpetf2osivftea7rvqjc.apps.googleusercontent.com";
+
+// =============================================================================
+// Facebook CLient ID
+// =============================================================================
+
+process.env.FCLIENT_ID = process.env.FCLIENT_ID || "487119231693777";
+process.env.FCLIENT_SECRET = process.env.FCLIENT_SECRET || "593f27e79634f1d66c214870230acf6a";
