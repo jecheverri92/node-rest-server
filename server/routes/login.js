@@ -2,6 +2,7 @@ const express = require('express')
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { verificaToken, verificaAdmin_Rol, verificaFacebook } = require('../middlewares/auntenticacion')
 
 
 const Usuario = require('../models/usuario')
@@ -75,7 +76,7 @@ async function verify(token) {
         nombre: payload.name,
         email: payload.email,
         img: payload.picture,
-        google: true,
+        provider: 'Google',
 
     }
 
@@ -102,12 +103,12 @@ app.post('/google', async (req, res) => {
         };
         if (usuarioDB) {
 
-            if (usuarioDB.provider === 'Normal') {
+            if (usuarioDB.provider !== 'Google') {
                 
                 return res.status(400).json({
                     ok: false,
                     err: {
-                        message: 'Debe de usar su autenticacion normal'
+                        message: 'Debe de usar su autenticacion normal o facebook'
                     }
                 })
                 
@@ -173,38 +174,23 @@ passport.use('facebook',new FacebookStrategy({
     callbackURL: "http://localhost:3000/auth/facebook/callback",
     profileFields: ['id', 'displayName', 'photos', 'email']
   },
-  async (accessToken, refreshToken, profile, cb) => {
+  async (accessToken, refreshToken, profile, done) => {
 
-
-    
     Usuario.findOne({email: profile._json.email}, (err, usuarioDB) => {
         if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            })
+            return done(err, false, err.message)
         }if (usuarioDB) {
             
             if (usuarioDB.provider !== 'facebook') {
                 
-                return res.status(400).json({
-                    ok: false,
-                    err: {
-                        message: 'Debe de usar su autenticacion normal o con Google'
-                    }
-                })
+                return done(err, false, err.message)
             }else {
                 let token = jwt.sign({
                     usuario: usuarioDB
                 }, process.env.SEED, {
                     expiresIn: process.env.CADUCIDAD_TOKEN
                 });
-                
-                return res.json({
-                    ok: true,
-                    usuario: usuarioDB,
-                    token
-                })
+                return done(null, {usuarioDB,token})
             }
 
 
@@ -219,18 +205,14 @@ passport.use('facebook',new FacebookStrategy({
 
             newUser.save((err, usuarioDB) => {
                 if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
-                    })
+                    return done(err,false,err.message)
                 }
                 let token = jwt.sign({
                     usuario: usuarioDB
                 }, process.env.SEED, {
                     expiresIn: process.env.CADUCIDAD_TOKEN
                 });
-
-                return cb(null,newUser);
+                return done(null,usuarioDB);
 
             });
             
@@ -249,14 +231,22 @@ passport.deserializeUser(async (id, done) => {
     done(null, userDB)
 })
 
+const authenFacebook = passport.authenticate('facebook', { failureRedirect: '/', session: false })
+ 
 app.get('/auth/facebook',         // Esta hay que llamarla desde el boton
   passport.authenticate('facebook'));
 
 app.get('/auth/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: '/' }),
+  authenFacebook,
   function(req, res) {
     // Successful authentication, redirect home.
+    console.log(req.user)
     res.redirect('/');
   });
 
- module.exports = app;
+
+  app.get('/profiler',verificaFacebook, (req, res)=>{
+      console.log('En profiler papu')
+  })
+
+ module.exports = app; 
