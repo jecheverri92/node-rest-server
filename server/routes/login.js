@@ -82,7 +82,7 @@ async function verify(token) {
 
 }
 
-app.post('/google', async (req, res) => {
+app.post('/auth/google', async (req, res) => {
 
     let token = req.body.idtoken;
 
@@ -231,7 +231,7 @@ passport.deserializeUser(async (id, done) => {
     done(null, userDB)
 })
 
-const authenFacebook = passport.authenticate('facebook', { failureRedirect: '/', session: false })
+const authenFacebook = passport.authenticate('facebook', { failureRedirect: '/', successRedirect: '/', session: false })
  
 app.get('/auth/facebook',         // Esta hay que llamarla desde el boton
   passport.authenticate('facebook'));
@@ -240,13 +240,19 @@ app.get('/auth/facebook/callback',
   authenFacebook,
   function(req, res) {
     // Successful authentication, redirect home.
-    console.log(req.user)
-    res.redirect('/');
+    console.log(req.user.token)
+    return res.json({
+        ok: true,
+        usuario: req.user.usuarioDB,
+        token :  req.user.token
+    });
   });
 
 
-  app.get('/profiler',verificaFacebook, (req, res)=>{
-      console.log('En profiler papu')
+  app.get('/facebook',verificaToken, (req, res)=>{
+      return res.json({
+        ok: true,
+    });
   })
 
  module.exports = app; 
